@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employee Portal Dashboard</title>
+<style>
+:root{
+--bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#9aa4b2; --glass:rgba(255,255,255,0.03);
+}
+*{box-sizing:border-box;font-family:Inter,system-ui,sans-serif;}
+body{margin:0;background:linear-gradient(180deg,#071023,#071826);color:#e6eef6;}
+.wrap{max-width:1100px;margin:28px auto;padding:20px;}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.brand{display:flex;gap:12px;align-items:center;}
+.logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:800;color:#02122a;}
+.sub{font-size:13px;color:var(--muted);}
+.clock{background:var(--glass);padding:8px 12px;border-radius:10px;font-weight:600;}
+main{display:grid;grid-template-columns:260px 1fr;gap:18px;}
+.sidebar{background:var(--card);padding:14px;border-radius:12px;}
+.profile{display:flex;gap:12px;align-items:center;}
+.avatar{width:56px;height:56px;border-radius:10px;background:#12203a;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);}
+.menu{margin-top:18px;display:flex;flex-direction:column;gap:8px;}
+.menu button{background:transparent;border:none;color:var(--muted);padding:10px;border-radius:8px;text-align:left;font-weight:600;cursor:pointer;}
+.menu button.active,.menu button:hover{background:#071826;color:#fff;}
+.content{display:flex;flex-direction:column;gap:16px;}
+.cards{display:flex;gap:12px;flex-wrap:wrap;}
+.card{background:var(--card);padding:14px;border-radius:12px;flex:1;min-width:160px;}
+.card h3{font-size:12px;color:var(--muted);}
+.card p{font-size:20px;font-weight:700;}
+.panel{background:var(--card);padding:14px;border-radius:12px;}
+.btn{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:#02122a;font-weight:700;cursor:pointer;}
+.btn:hover{filter:brightness(1.2);}
+.hidden{display:none;}
+table{width:100%;border-collapse:collapse;}
+th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);}
+input, select{padding:8px;border-radius:6px;border:none;}
+@media(max-width:900px){main{grid-template-columns:1fr}.cards{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+<div class="brand">
+<div class="logo">GCC</div>
+<div>
+<h1>Gardner College Cashier Portal</h1>
+<p class="sub">Employee Dashboard</p>
+</div>
+</div>
+<div class="clock" id="datetime"></div>
+</header>
+
+<main>
+<aside class="sidebar">
+<div class="profile">
+<div class="avatar" id="avatar">A</div>
+<div>
+<div class="name" id="empName">Admin</div>
+<div class="sub" id="empRole">Cashier Staff</div>
+</div>
+</div>
+<nav class="menu">
+<button class="active" data-section="dashboard">Dashboard</button>
+<button data-section="attendance">Attendance</button>
+<button data-section="transactions">Transaction History</button>
+<button data-section="income">Income Report</button>
+<button data-section="inventory">Inventory</button>
+</nav>
+</aside>
+
+<section class="content">
+
+<!-- DASHBOARD -->
+<div id="dashboardSection" class="section">
+<div class="cards">
+<div class="card"><h3>Today</h3><p id="todayDate"></p></div>
+<div class="card"><h3>Clock In</h3><p id="clockIn">—</p></div>
+<div class="card"><h3>Clock Out</h3><p id="clockOut">—</p></div>
+</div>
+</div>
+
+<!-- ATTENDANCE -->
+<div id="attendanceSection" class="section hidden">
+<div class="panel">
+<h2>Attendance</h2>
+<table>
+<thead><tr><th>Date</th><th>Time In</th><th>Time Out</th></tr></thead>
+<tbody id="attTable"></tbody>
+</table>
+</div>
+</div>
+
+<!-- TRANSACTIONS -->
+<div id="transactionsSection" class="section hidden">
+<div class="panel">
+<h2>Transaction History</h2>
+<div style="margin-bottom:10px;">
+<select id="filterCashier"><option value="">All Cashiers</option></select>
+<button class="btn" id="exportCSV">Export CSV</button>
+</div>
+<table>
+<thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Cashier</th></tr></thead>
+<tbody id="transTable"></tbody>
+</table>
+</div>
+</div>
+
+<!-- INVENTORY -->
+<div id="inventorySection" class="section hidden">
+  <div class="panel">
+    <h2>Inventory</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Item / Description</th>
+          <th>Old Stock</th>
+          <th>New Stock</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="invTable"></tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- INCOME -->
+<div id="incomeSection" class="section hidden">
+<div class="panel">
+<h2>Income Report</h2>
+<div class="cards">
+<div class="card"><h3>Weekly</h3><p id="week">₱0</p></div>
+<div class="card"><h3>Monthly</h3><p id="month">₱0</p></div>
+<div class="card"><h3>Yearly</h3><p id="year">₱0</p></div>
+</div>
+<br>
+<button class="btn" onclick="resetAll()">Reset All Data</button>
+</div>
+</div>
+
+</section>
+</main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+/* --- CLOCK --- */
+setInterval(()=>{
+const d = new Date();
+$('datetime').textContent = d.toLocaleTimeString() + ' • ' + d.toLocaleDateString();
+$('todayDate').textContent = d.toDateString();
+},1000);
+
+/* --- NAVIGATION --- */
+document.querySelectorAll('.menu button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('.menu button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s=>s.classList.add('hidden'));
+    b.classList.add('active');
+    document.getElementById(b.dataset.section+'Section').classList.remove('hidden');
+
+    // Only refresh inventory table when opening Inventory section
+    if(b.dataset.section === 'inventory') renderInventory();
+  }
+});
+
+
+/* --- ATTENDANCE AUTOMATIC FOR MULTIPLE SITES --- */
+/* --- ATTENDANCE AUTOMATIC --- */
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+
+function renderAttendance(){
+const a = JSON.parse(localStorage.getItem('ep_att') || '[]');
+$('attTable').innerHTML = a.map(r=>`<tr><td>${r.date}</td><td>${r.in}</td><td>${r.out||'—'}</td></tr>`).join('');
+const today = a.find(r=>r.key === todayKey());
+if(today){ 
+$('clockIn').textContent = today.in || '—'; 
+$('clockOut').textContent = today.out || '—'; 
+  } else {
+    $('clockIn').textContent = '—'; 
+    $('clockOut').textContent = '—'; 
+}
+}
+
+// Detect changes from Login/Logout sites
+// Detect changes from login/logout sites (works across tabs)
+window.addEventListener('storage', (event)=>{
+if(event.key === 'ep_att'){
+    renderAttendance(); // refresh automatically
+    renderAttendance();
+}
+});
+
+// Initial render
+renderAttendance();
+// Also render on page load (same tab)
+document.addEventListener('DOMContentLoaded', renderAttendance);
+
+/* --- TRANSACTIONS --- */
+function renderTransactions(filterCashier=''){
+const t = JSON.parse(localStorage.getItem('trans') || '[]');
+const filtered = filterCashier ? t.filter(x=>x.cashier===filterCashier) : t;
+$('transTable').innerHTML = filtered.map(x=>`
+   <tr><td>${x.date}</td><td>${x.desc}</td><td>₱${x.amt}</td><td>${x.cashier}</td></tr>
+ `).join('');
+const cashierSet = [...new Set(t.map(x=>x.cashier))];
+const sel = $('filterCashier');
+sel.innerHTML='<option value="">All Cashiers</option>';
+cashierSet.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+}
+$('filterCashier').onchange = e => renderTransactions(e.target.value);
+function sendToDashboard(queue,totalAmount){
+let transactions = JSON.parse(localStorage.getItem("trans")||"[]");
+let desc = queue.map(q=>`${q.name} x${q.qty}`).join(", ");
+transactions.push({time:Date.now(),date:new Date().toLocaleDateString(),desc,amt:totalAmount,cashier:localStorage.user||"Unknown"});
+localStorage.setItem("trans",JSON.stringify(transactions));
+renderTransactions();
+}
+renderTransactions();
+
+/* --- INVENTORY LOG --- */
+function getInventory(){
+  return JSON.parse(localStorage.getItem('inventoryLog') || '[]');
+}
+
+function renderInventory(){
+  const inv = getInventory();
+  $('invTable').innerHTML = inv.map(x=>`
+    <tr>
+      <td>${x.date}</td>
+      <td>${x.item}</td>
+      <td>${x.old}</td>
+      <td>${x.new}</td>
+      <td>${x.total}</td>
+    </tr>
+  `).join('');
+}
+
+renderInventory();
+
+  
+/* --- INCOME --- */
+function calcIncome(){
+const t = JSON.parse(localStorage.getItem('trans')||'[]');
+const now = new Date(); let w=0,m=0,y=0;
+t.forEach(x=>{
+const d = new Date(x.time);
+if((now-d)/864e5 <= 7) w+=x.amt;
+if(d.getMonth() === now.getMonth()) m+=x.amt;
+if(d.getFullYear() === now.getFullYear()) y+=x.amt;
+});
+$('week').textContent='₱'+w;
+$('month').textContent='₱'+m;
+$('year').textContent='₱'+y;
+}
+calcIncome();
+
+/* --- RESET ALL --- */
+function resetAll(){if(confirm("Reset ALL data?")){localStorage.clear();location.reload();}}
+
+/* --- EXPORT CSV --- */
+$('exportCSV').onclick = ()=>{
+const t = JSON.parse(localStorage.getItem('trans')||'[]');
+let csv = "Date,Description,Amount,Cashier\n";
+t.forEach(x=>csv += `${x.date},"${x.desc}",${x.amt},${x.cashier}\n`);
+const blob = new Blob([csv],{type:"text/csv"});
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = "transactions.csv"; a.click();
+URL.revokeObjectURL(url);
+};
+
+/* --- INIT --- */
+renderAttendance(); renderTransactions();
+setInterval(calcIncome,1000);
+
+/* ===== AUTO CLOCK IN ON LOGIN ===== */
+(function autoClockIn() {
+    const cashier = localStorage.getItem('cashierName');
+    if (!cashier) return; // no one logged in
+
+    let a = JSON.parse(localStorage.getItem('ep_att') || '[]');
+    const now = new Date();
+    const today = now.toISOString().slice(0,10);
+    const timeNow = now.toLocaleTimeString();
+    const dateNow = now.toLocaleDateString();
+
+    let rec = a.find(r => r.key === today);
+    if (!rec) {
+        // create new attendance for today
+        rec = { key: today, date: dateNow, in: timeNow, out: "" };
+        a.push(rec);
+    } else if (!rec.in) {
+        // if somehow in is empty, set it
+        rec.in = timeNow;
+    }
+    localStorage.setItem('ep_att', JSON.stringify(a));
+    renderAttendance();
+})();
+
+/* ===== UPDATE DASHBOARD IF ep_att CHANGES ===== */
+window.addEventListener('storage', function(event){
+    if (event.key === 'ep_att') {
+        renderAttendance();
+    }
+});
+</script>
+  
+
+</body>
+</html>
+
+
+
+
+
