@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canteen Cashier System</title>
+
+<style>
+/* ===== GENERAL ===== */
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Segoe UI',sans-serif;
+  background:#0d1b3d;
+  color:white;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+header {
+  background:#09132d;
+  padding:12px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+header img { height:80px; border:3px solid white; border-radius:6px; margin-right:15px; }
+
+.header-left { display:flex; align-items:center; }
+
+header h1 { font-size:24px; font-weight:700; }
+
+.nav-btns a {
+  background:white;
+  color:#09132d;
+  padding:8px 15px;
+  border-radius:6px;
+  font-weight:bold;
+  text-decoration:none;
+  margin-left:10px;
+}
+
+/* ===== MAIN LAYOUT ===== */
+.pos-container {
+  flex:1;
+  display:grid;
+  grid-template-columns:2fr 1.2fr;
+  padding:20px;
+  gap:20px;
+}
+
+.panel {
+  background:white;
+  color:black;
+  border-radius:12px;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+}
+
+.panel h2 {
+  background:#0a1533;
+  color:white;
+  padding:12px;
+  border-radius:6px;
+  text-align:center;
+  margin-bottom:15px;
+}
+
+.item-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:14px;
+}
+
+.item-btn {
+  padding:22px 12px;
+  font-size:17px;
+  font-weight:bold;
+  background:#1e3fa1;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.item-btn:hover { background:#2a4fcc; }
+.item-btn.selected { background:#142b69; box-shadow:0 0 5px #06122e; }
+
+table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:15px;
+}
+
+th, td {
+  border-bottom:1px solid #ddd;
+  padding:6px;
+  text-align:center;
+}
+
+button#confirmOrdersBtn {
+  background:#007b3a;
+  color:white;
+  margin-top:10px;
+  padding:10px;
+  border-radius:6px;
+  border:none;
+  cursor:pointer;
+}
+
+button#clearQueueBtn {
+  background:#b32828;
+  color:white;
+  margin-top:10px;
+  padding:10px;
+  border-radius:6px;
+  border:none;
+  cursor:pointer;
+}
+
+#queueTotal { margin-top:10px; font-weight:bold; }
+
+input { padding:8px; margin-bottom:8px; width:100%; }
+
+/* ===== TUTORIAL POPUP ===== */
+#tutorial {
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.65);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+}
+
+#tutorial-box {
+  background:white;
+  color:black;
+  padding:25px;
+  width:380px;
+  border-radius:12px;
+  text-align:center;
+  animation:pop 0.25s ease-out;
+  z-index:10000;
+}
+
+@keyframes pop {
+  from { transform:scale(0.8); opacity:0; }
+  to { transform:scale(1); opacity:1; }
+}
+
+#tutorial button {
+  margin-top:15px;
+  padding:10px;
+  width:100%;
+  background:#0d1b3d;
+  color:white;
+  border:0;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+/* ===== ADMIN MODAL ===== */
+#adminModalBG {
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+#adminModal {
+  background:white;
+  color:black;
+  padding:25px;
+  width:300px;
+  border-radius:8px;
+  text-align:center;
+}
+
+#adminModal input { width:90%; margin:12px 0; padding:8px; font-size:14px; }
+#adminModal button { padding:8px 10px; width:100%; margin-top:10px; cursor:pointer; }
+
+/* ===== INVENTORY BUTTON & MODAL ===== */
+#inventoryBtn {
+  position:fixed;
+  bottom:25px; right:25px;
+  background:#ffb200;
+  color:black;
+  font-weight:bold;
+  padding:15px 20px;
+  border-radius:50px;
+  border:none;
+  font-size:16px;
+  cursor:pointer;
+  box-shadow:0 4px 10px rgba(0,0,0,0.4);
+  z-index:9999;
+}
+
+#inventoryModalBG {
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:99999;
+}
+
+#inventoryModal {
+  background:white;
+  color:black;
+  padding:20px;
+  width:400px;
+  border-radius:10px;
+}
+
+#inventoryModal h2 { margin-bottom:10px; }
+#inventoryModal input, #inventoryModal select { width:90%; padding:7px; margin:6px 0; }
+#inventoryModal button { padding:8px 10px; width:100%; margin-top:10px; background:#0d1b3d; color:white; border-radius:6px; border:none; cursor:pointer; }
+</style>
+</head>
+
+<body>
+<header>
+<div class="header-left">
+<img src="logocashier.jpg" alt="Logo">
+<h1>Canteen Cashier System</h1>
+</div>
+<div class="nav-btns">
+<a href="dashboard1-1.html">Dashboard</a>
+<a href="index.html">Logout</a>
+</div>
+</header>
+
+<!-- TUTORIAL -->
+<div id="tutorial">
+<div id="tutorial-box">
+<h2>Welcome!</h2>
+<p style="font-size:15px; margin-top:10px;">
+👉 Tap products to increase quantity<br>
+👉 ENTER = Add item<br>
+👉 ← → = Select product<br>
+👉 ESC = Clear queue (admin)<br>
+👉 Delete = Remove item (admin)<br><br>
+Enjoy using the cashier system!
+</p>
+<button onclick="closeTutorial()">Got it!</button>
+</div>
+</div>
+
+<!-- ADMIN PASSWORD MODAL -->
+<div id="adminModalBG">
+<div id="adminModal">
+<h3>Admin Password</h3>
+<input type="password" id="adminPassInput" placeholder="Enter password">
+<button onclick="confirmAdmin()">Confirm</button>
+<button onclick="closeAdmin()" style="background:#b32828;color:white;margin-top:10px;padding:8px;width:100%;">Cancel</button>
+</div>
+</div>
+
+<!-- INVENTORY MODAL -->
+<div id="inventoryModalBG">
+<div id="inventoryModal">
+<h2>Inventory Management</h2>
+<select id="inventorySelect"></select>
+<input type="number" id="stockInput" placeholder="Add Stock (+)">
+<input type="number" id="priceInput" placeholder="New Price (optional)">
+<input type="text" id="newProductName" placeholder="Add New Product Name">
+<input type="number" id="newProductPrice" placeholder="New Product Price">
+<button onclick="saveInventoryChanges()">Save Changes</button>
+<button onclick="closeInventory()" style="background:#b32828;">Close</button>
+</div>
+</div>
+
+<!-- FLOATING INVENTORY BUTTON -->
+<button id="inventoryBtn" onclick="requestInventoryAdmin()">📦 Inventory</button>
+
+<div class="pos-container">
+<!-- PRODUCT PANEL -->
+<div class="panel">
+<h2>Food Items</h2>
+<div class="item-grid" id="itemButtons"></div>
+</div>
+
+<!-- QUEUE PANEL -->
+<div class="panel">
+<h2>Order Queue</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Qty</th>
+<th>Price</th>
+<th>Total</th>
+<th>Del</th>
+</tr>
+</thead>
+<tbody id="queue-body"></tbody>
+</table>
+<div class="total" id="queueTotal">Queue Total: ₱0.00</div>
+<h3 style="margin-top:15px;">Payment:</h3>
+<input type="number" id="paymentInput" placeholder="Customer payment">
+<h3>Change:</h3>
+<div id="changeDisplay">₱0.00</div>
+<button id="confirmOrdersBtn">Confirm Sale</button>
+<button id="clearQueueBtn">Clear Queue</button>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script>
+/* ===== INITIAL SETUP ===== */
+const ITEMS_KEY="canteen_items";
+const QUEUE_KEY="canteen_queue";
+const INVENTORY_LOG_KEY="inventoryLog";
+const ADMIN_HASH="81dc9bdb52d04dc20036dbd8313ed055";
+
+let items = JSON.parse(localStorage.getItem(ITEMS_KEY)) || [
+{code:"A1",name:"Burger",price:35,stock:50},
+{code:"A2",name:"Soda",price:25,stock:40},
+{code:"A3",name:"Biscuits",price:15,stock:60},
+{code:"A4",name:"Meal",price:60,stock:30},
+{code:"A5",name:"Hotdog",price:30,stock:45},
+{code:"A6",name:"Fries",price:40,stock:35}
+];
+let queue = JSON.parse(localStorage.getItem(QUEUE_KEY)) || [];
+let selected=0, deleteIndex=null, clearRequested=false, adminTries=0;
+let inventoryRequested = false;
+const cashierName = localStorage.getItem("cashierName") || "Unknown";
+
+/* ===== SAVE ===== */
+function saveItems(){ localStorage.setItem(ITEMS_KEY, JSON.stringify(items)); }
+function saveQueue(){ localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)); }
+function saveInventoryLog(log){ localStorage.setItem(INVENTORY_LOG_KEY, JSON.stringify(log)); }
+
+/* ===== ITEMS PANEL ===== */
+function renderItems(){
+    const wrap=document.getElementById("itemButtons");
+    wrap.innerHTML="";
+    items.forEach((item,i)=>{
+        const btn=document.createElement("button");
+        btn.className="item-btn"; 
+        if(i===selected) btn.classList.add("selected");
+        btn.textContent=`${item.name}\n₱${item.price}`;
+        btn.onclick=()=>{ selected=i; addToQueue(i); renderItems(); };
+        wrap.appendChild(btn);
+    });
+}
+
+function addToQueue(i){
+    const item=items[i];
+    if(item.stock===0){alert("Out of stock!"); return;}
+    let existing=queue.find(q=>q.code===item.code);
+    if(existing){ if(existing.qty<item.stock) existing.qty++; else alert("Not enough stock!"); }
+    else queue.push({code:item.code,qty:1});
+    saveQueue(); renderQueue();
+}
+
+function queueTotal(){ return queue.reduce((t,q)=>t+items.find(i=>i.code===q.code).price*q.qty,0); }
+
+function renderQueue(){
+    const tb=document.getElementById("queue-body");
+    tb.innerHTML="";
+    queue.forEach((q,i)=>{
+        const it=items.find(x=>x.code===q.code);
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td>${it.name}</td><td>${q.qty}</td><td>₱${it.price}</td><td>₱${it.price*q.qty}</td>
+        <td><button onclick="requestDelete(${i})" style="padding:5px;background:#d11;color:white;border:none;border-radius:4px;">X</button></td>`;
+        tb.appendChild(tr);
+    });
+    document.getElementById("queueTotal").textContent="Queue Total: ₱"+queueTotal().toFixed(2);
+    updateChange();
+}
+
+/* ===== ADMIN DELETE ===== */
+function requestDelete(i){ deleteIndex=i; clearRequested=false; document.getElementById("adminModalBG").style.display="flex"; }
+
+function requestInventoryAdmin() {
+    inventoryRequested = true;
+    clearRequested = false;
+    deleteIndex = null;
+    document.getElementById("adminModalBG").style.display="flex";
+}
+
+function confirmAdmin(){
+    const pass=document.getElementById("adminPassInput").value;
+    if(CryptoJS.MD5(pass).toString()===ADMIN_HASH){
+        if(clearRequested){
+            queue=[]; saveQueue(); renderQueue();
+            document.getElementById("paymentInput").value="";
+            updateChange();
+        } else if(deleteIndex!==null){
+            queue.splice(deleteIndex,1); saveQueue(); renderQueue();
+        } else if(inventoryRequested){
+            openInventory();
+            inventoryRequested = false;
+        }
+        closeAdmin(); adminTries=0;
+    } else {
+        adminTries++; alert("Wrong password!");
+        if(adminTries>=3){alert("Too many attempts — system locked."); location.reload();}
+    }
+}
+
+function closeAdmin(){ 
+    document.getElementById("adminModalBG").style.display="none"; 
+    document.getElementById("adminPassInput").value=""; 
+    deleteIndex=null; clearRequested=false; 
+    inventoryRequested = false;
+}
+
+/* ===== PAYMENT ===== */
+document.getElementById("paymentInput").addEventListener("input", updateChange);
+function updateChange(){
+    const payment=Number(document.getElementById("paymentInput").value);
+    const total=queueTotal();
+    const change=payment-total;
+    document.getElementById("changeDisplay").textContent="₱"+(change>=0?change.toFixed(2):"0.00");
+}
+
+/* ===== CLEAR QUEUE ===== */
+document.getElementById("clearQueueBtn").onclick=()=>{
+    clearRequested=true; deleteIndex=null; document.getElementById("adminModalBG").style.display="flex";
+}
+
+/* ===== CONFIRM SALE ===== */
+document.getElementById("confirmOrdersBtn").onclick=()=>{
+    if(queue.length===0){alert("Queue is empty!"); return;}
+    const payment = Number(document.getElementById("paymentInput").value);
+    const total = queueTotal();
+    if(payment < total){ alert("Insufficient payment!"); return; }
+
+    // Save transaction for dashboard
+    sendToDashboard(queue, total);
+
+    // Update stock & create inventory log
+    const inventoryLog = JSON.parse(localStorage.getItem(INVENTORY_LOG_KEY) || "[]");
+    const now = new Date();
+    queue.forEach(order=>{
+        const it = items.find(i=>i.code===order.code);
+        const oldStock = it.stock;
+        it.stock -= order.qty;
+        // Push log
+        inventoryLog.push({
+            date: now.toLocaleDateString(),
+            item: it.name,
+            old: oldStock,
+            new: order.qty,
+            total: it.stock
+        });
+    });
+    saveInventoryLog(inventoryLog);
+    saveItems();
+
+    queue=[]; saveQueue(); renderQueue();
+    document.getElementById("paymentInput").value=""; updateChange();
+    alert("Sale recorded!");
+}
+
+/* ===== SEND TO DASHBOARD ===== */
+function sendToDashboard(queue, totalAmount){
+    let transactions = JSON.parse(localStorage.getItem("trans")||"[]");
+    const desc = queue.map(q=>items.find(i=>i.code===q.code).name + " x"+q.qty).join(", ");
+    transactions.push({
+        time: Date.now(),
+        date: new Date().toLocaleDateString(),
+        desc: desc,
+        amt: totalAmount,
+        cashier: cashierName
+    });
+    localStorage.setItem("trans", JSON.stringify(transactions));
+}
+
+/* ===== LOGOUT ===== */
+function logoutCashier(){
+    const cashier = localStorage.getItem('cashierName') || 'Unknown';
+    const todayKey = new Date().toISOString().slice(0,10);
+    let ep_att = JSON.parse(localStorage.getItem('ep_att') || '[]');
+    let rec = ep_att.find(r => r.key === todayKey && r.cashier === cashier);
+    const now = new Date().toLocaleTimeString();
+    const date = new Date().toLocaleDateString();
+    if(!rec){
+        rec = { key: todayKey, date: date, cashier: cashier, in: "", out: now };
+        ep_att.push(rec);
+    } else {
+        rec.out = now;
+    }
+    localStorage.setItem('ep_att', JSON.stringify(ep_att));
+    localStorage.removeItem("cashierName");
+    localStorage.removeItem("isLoggedIn");
+    window.location.href="index.html";
+}
+
+/* ===== TUTORIAL ===== */
+function closeTutorial(){ document.getElementById("tutorial").style.display="none"; }
+
+/* ===== INVENTORY ===== */
+function openInventory(){ 
+    populateInventorySelect();
+    document.getElementById("inventoryModalBG").style.display="flex"; 
+}
+function closeInventory(){ document.getElementById("inventoryModalBG").style.display="none"; }
+
+function saveInventoryChanges(){
+    const selectedCode = document.getElementById("inventorySelect").value;
+    const stock = Number(document.getElementById("stockInput").value);
+    const price = Number(document.getElementById("priceInput").value);
+    const newName = document.getElementById("newProductName").value;
+    const newPrice = Number(document.getElementById("newProductPrice").value);
+
+    let inventoryLog = JSON.parse(localStorage.getItem('inventoryLog') || '[]');
+    const now = new Date();
+
+    const item = items.find(i => i.code === selectedCode);
+    if(item){
+        const oldStock = item.stock;
+        if(!isNaN(stock)) item.stock += stock;
+        if(!isNaN(price) && price>0) item.price = price;
+
+        // Log the stock/price change
+        inventoryLog.push({
+            date: now.toLocaleDateString(),
+            item: item.name,
+            old: oldStock,
+            new: stock || 0,
+            total: item.stock
+        });
+    }
+
+    if(newName && !isNaN(newPrice) && newPrice>0){
+        const newCode = 'A' + (items.length+1);
+        items.push({code:newCode,name:newName,price:newPrice,stock:0});
+
+        // Log new product
+        inventoryLog.push({
+            date: now.toLocaleDateString(),
+            item: newName,
+            old: 0,
+            new: newPrice,
+            total: 0
+        });
+    }
+
+    saveItems();
+    saveInventoryLog(inventoryLog); 
+    renderItems();
+    closeInventory();
+    alert("Inventory updated!");
+    document.getElementById("stockInput").value="";
+    document.getElementById("priceInput").value="";
+    document.getElementById("newProductName").value="";
+    document.getElementById("newProductPrice").value="";
+}
+
+/* ===== INVENTORY SELECT POPULATION ===== */
+function populateInventorySelect(){
+    const sel = document.getElementById("inventorySelect");
+    sel.innerHTML="";
+    items.forEach(it=>{
+        const opt = document.createElement("option");
+        opt.value=it.code;
+        opt.textContent=it.name+" | Stock:"+it.stock+" | ₱"+it.price;
+        sel.appendChild(opt);
+    });
+}
+
+/* ===== INITIAL RENDER ===== */
+renderItems();
+renderQueue();
+
+/* ===== STORAGE UPDATE LISTENER ===== */
+window.addEventListener('storage', (e)=>{
+    if(e.key==='inventoryLog'){ console.log("Inventory updated externally."); }
+});
+</script>
+</body>
+</html>
